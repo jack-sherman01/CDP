@@ -814,3 +814,40 @@ idle, no orphaned Isaac Sim processes). Recovery:
   `scripts_nav/run_remaining_nav_training.sh`.
 
 Both queues confirmed running cleanly again.
+
+## 2026-09-02 — Manipulation training queue complete; full eval queue launched
+
+`run_remaining_manip_training.sh` (10 runs) finished cleanly overnight, no
+errors: `scalar_lagrangian`/`vector_lagrangian` on all 3 single-hazard
+tasks, `fixed_weight` on all 3, `vector_lagrangian` joint-exposure on both
+composites. All 9 core single-exposure checkpoints (task_only/scalar_
+lagrangian/vector_lagrangian x 3 tasks) plus fixed_weight x3 plus
+joint-exposure x2 now exist with the corrected gains.
+
+Noted: `vector_lagrangian_fill_bowl_0_joint`'s lambda saturated at the
+50.0 ceiling — checked the underlying damage and it's exactly ~40,000/
+episode throughout training, the same FrankaMounted/FrankaPanda
+embodiment-mismatch signature documented in `private/CONTRIBUTIONS_LOG.md`
+entry 8 (not a new bug; `food_in_microwave` remains the trustworthy
+FrankaPanda-matched composite for RQ1/RQ2, `fill_bowl` generated for
+completeness only).
+
+Nav domain: re-ran the full RQ1/RQ2 analysis with the corrected data.
+RQ1 (`STCR_vector - STCR_scalar` on the zero-shot composite): small
+positive delta in both domains (goal_joint +0.025, button_joint +0.075) --
+directionally consistent with the hypothesis, not yet significant at
+n=20/1 seed. RQ2 came back with an unexpected, real finding: the
+joint-exposure "upper bound" checkpoints have LOWER TCR (0.25) than every
+single-exposure zero-shot checkpoint on the same composite (TCR 0.45-0.95)
+-- `Delta_comp` negative or zero in all 4 comparisons. Likely explanation:
+training directly on the harder two-hazard composite task needs more than
+2M steps to reach the task-completion level single-exposure training
+reaches on its easier source task. Recorded as-is in
+`private/CONTRIBUTIONS_LOG.md` entry 15 rather than suppressed pending a
+rerun.
+
+Launched `scripts/run_all_manip_eval.sh`: in-distribution + zero-shot (on
+both `food_in_microwave` and `fill_bowl`) for all 12 single-exposure
+checkpoints, plus in-distribution eval of both joint-exposure checkpoints
+-- 38 eval combos total, sequential (one Isaac Sim process at a time),
+running now.
