@@ -46,9 +46,28 @@ import numpy as np
 DEFAULT_BUDGET = 30.0  # health points/episode — matches object_health_floor's
                         # implicit "100 - 70 = 30 points of damage" headroom
                         # already used throughout src/cdp/tasks.py.
-DEFAULT_K_P = 1e-2
-DEFAULT_K_I = 1e-3
-DEFAULT_K_D = 1e-2
+
+# Gain history (2026-09-01, private/CONTRIBUTIONS_LOG.md entry 14): the
+# original defaults here (K_P=1e-2, K_I=1e-3, K_D=1e-2) were a guess, never
+# empirically checked against the actual reward/cost scale of either
+# domain. After a full training queue in both domains, every
+# `lambda_final.json` came back two-to-three orders of magnitude too small
+# to influence behavior (manipulation: final lambda ~0.002-0.005 after only
+# ~10 rollout updates in a 20k-step budget, vs. the ~0.05 fixed weight
+# already shown to suppress damage — CONTRIBUTIONS_LOG entry 6; navigation:
+# final lambda ~0.01-0.09 after ~488 updates, with cost never trending down
+# toward budget). Damage/cost was statistically indistinguishable from
+# `task_only` in both domains as a direct result — not evidence the
+# mechanism doesn't work, evidence the dual variable never got large enough
+# to matter. Raised 50-100x here; `scripts/train_ppo.py` and
+# `scripts_nav/train_ppo_nav.py` additionally override these via CLI
+# defaults tuned to each domain's very different rollout-update budget
+# (manipulation: ~10 updates in a 20k-step run, so the proportional term
+# must dominate for an immediate effect; navigation: ~500-1000 updates, so
+# integral accumulation has more room to work with).
+DEFAULT_K_P = 0.5
+DEFAULT_K_I = 0.02
+DEFAULT_K_D = 0.2
 DEFAULT_LAMBDA_MAX = 50.0
 DEFAULT_INTEGRAL_MAX = 50.0
 

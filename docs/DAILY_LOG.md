@@ -736,3 +736,56 @@ kept. Full writeup: `private/CONTRIBUTIONS_LOG.md` entry 13.
 Manipulation queue status: 3/14 done (`task_only_pick_egg`,
 `scalar_lagrangian_pick_egg`, `vector_lagrangian_pick_egg`), now on
 `task_only_add_firewood` (run 4/14).
+
+## 2026-09-01 (cont. 2) — PID gains were 50-100x too weak; retuned and verified
+
+Investigated why the (bug-fixed) nav RQ1 comparison was still null: checked
+the manipulation domain's already-real (non-buggy) `pick_egg` runs directly
+and found `vector_lagrangian` had HIGHER damage than `task_only` (107 vs
+93), with `lambda_final=0.0049` after all 10 rollout updates a 20k-step
+budget allows — ~10x smaller than the fixed lambda=0.05 already known to
+suppress damage (pre-pivot). Same root issue in both domains: gains
+(K_P=1e-2, K_I=1e-3, K_D=1e-2) were never checked against either domain's
+actual reward/cost scale or PID-update budget.
+
+Stopped the in-progress manipulation queue (7 hours in, would have burned
+14-20 more hours on runs that wouldn't show a real effect) after
+confirming no orphaned Isaac Sim processes. Quarantined (not deleted) the
+now-invalidated checkpoints/runs to `_STALE_WEAK_GAINS/` in both domains'
+`checkpoints{,_nav}/`/`runs{,_nav}/` — `task_only`/`fixed_weight` runs
+(unaffected, don't use the PID controller) were kept as-is.
+
+New domain-specific gains: manipulation (`scripts/train_ppo.py`)
+K_P=1.0/K_I=0.02/K_D=0.3 (proportional-dominant — only ~10 updates
+available in a 20k-step run); navigation (`scripts_nav/train_ppo_nav.py`)
+K_P=0.5/K_I=0.02/K_D=0.1 plus doubling the default budget 1M -> 2M steps
+(cheap domain, and published Safety-Gym-family PPO-Lagrangian benchmarks
+typically need far more than 1M steps to converge). Full rationale in
+`src/cdp/lagrangian.py`'s "Gain history" docstring;
+`private/CONTRIBUTIONS_LOG.md` entry 14.
+
+Validated before committing to full requeues: `vector_lagrangian_pick_egg`
+(manipulation, real 20k-step run) now reaches lambda 0.15-0.52 (was
+0.005) and shows damage trending down within the run itself (115.9 ->
+94.2 first-half vs. second-half, converging toward `task_only`'s 92.9
+baseline) — a real, if modest at this short budget, directional effect,
+unlike the flat/unresponsive behavior before. A 500k-step nav partial
+check (`goal_hazards_only`) showed the same healthy pattern: lambda
+settling around 0.10-0.17, oscillating in response to cost the way a
+working PID controller should.
+
+Also caught and fixed a second bug during this: `scripts_nav/
+retrain_lagrangian_fix.sh` hardcoded `STEPS=1000000`, which would have
+silently overridden the new 2M default the moment it was launched — killed
+that run immediately (caught within ~15s, no wasted compute) and fixed the
+script to let `train_ppo_nav.py`'s own default apply instead of
+re-hardcoding a value that can drift out of sync with it.
+
+Relaunched: `scripts_nav/retrain_lagrangian_fix.sh` (8 single-exposure +
+2 joint-exposure nav runs, new gains/budget) and
+`scripts/run_remaining_manip_training.sh` (11 remaining manipulation runs:
+`task_only_pour_water`, `scalar_lagrangian` x3,
+`vector_lagrangian`'s remaining `add_firewood`/`pour_water` +
+joint-exposure x2, `fixed_weight` x3 — `task_only_pick_egg`,
+`task_only_add_firewood`, and the now-validated
+`vector_lagrangian_pick_egg` were already done and kept).

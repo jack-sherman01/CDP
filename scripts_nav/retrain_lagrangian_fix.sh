@@ -9,7 +9,6 @@ source /data/heng/miniconda3/etc/profile.d/conda.sh
 conda activate cdp_nav
 cd /home/heng/work/CDP
 
-STEPS=1000000
 LOG_DIR=/data/heng/cdp/logs_nav/run_all_nav
 mkdir -p "$LOG_DIR"
 MAX_PARALLEL=${MAX_PARALLEL:-8}
@@ -18,9 +17,12 @@ run() {
   local task=$1 cond=$2
   local tag="${cond}_${task}"
   echo "=== [$(date -Is)] START $tag (retrain) ==="
+  # No --total_timesteps: let train_ppo_nav.py's own default (2M, per the
+  # entry-14 gain/budget fix) apply, rather than re-hardcoding a value here
+  # that would silently drift out of sync with it.
   OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 PYTHONUNBUFFERED=1 python -u \
     /home/heng/work/CDP/scripts_nav/train_ppo_nav.py \
-    --task_name "$task" --condition "$cond" --seed 0 --total_timesteps $STEPS \
+    --task_name "$task" --condition "$cond" --seed 0 \
     > "$LOG_DIR/${tag}.log" 2>&1
   echo "=== [$(date -Is)] DONE  $tag (retrain) ===" | tee -a "$LOG_DIR/${tag}.log"
 }

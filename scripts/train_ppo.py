@@ -67,9 +67,14 @@ def main():
     ap.add_argument("--budget", type=float, default=30.0,
                      help="*_lagrangian only: health points/episode the PID controller enforces "
                           "(per proposal's b_m); Day-24-style ablation via --budget_low/med/high sweep.")
-    ap.add_argument("--k_p", type=float, default=1e-2)
-    ap.add_argument("--k_i", type=float, default=1e-3)
-    ap.add_argument("--k_d", type=float, default=1e-2)
+    # Proportional-dominant: a 20k-step run only yields ~10 PPO rollouts,
+    # i.e. ~10 PID updates — not enough for slow integral accumulation to
+    # reach a consequential lambda, so K_P must produce an immediately
+    # meaningful penalty from the first update. See src/cdp/lagrangian.py's
+    # "Gain history" docstring for the tuning failure these replace.
+    ap.add_argument("--k_p", type=float, default=1.0)
+    ap.add_argument("--k_i", type=float, default=0.02)
+    ap.add_argument("--k_d", type=float, default=0.3)
     ap.add_argument("--fixed_lambda", type=float, default=0.05,
                      help="fixed_weight only: constant per-modality multiplier (RQ3 ablation).")
     ap.add_argument("--modality_dropout_p", type=float, default=0.0,

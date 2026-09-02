@@ -50,15 +50,23 @@ def main():
     ap.add_argument("--condition", required=True,
                      choices=["task_only", "scalar_lagrangian", "vector_lagrangian", "fixed_weight"])
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--total_timesteps", type=int, default=1_000_000)
+    # 2M (not the original 1M): a first pass at 1M steps left cost far
+    # above budget in every condition including task_only, consistent with
+    # published Safety-Gym-family benchmarks needing ~1e7 steps to fully
+    # converge PPO-Lagrangian — 2M buys more of that convergence without
+    # blowing up wall-clock (this domain is cheap, ~1hr/1M steps single-run).
+    ap.add_argument("--total_timesteps", type=int, default=2_000_000)
     ap.add_argument("--n_steps", type=int, default=2048)
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--budget", type=float, default=None,
                      help="*_lagrangian only: per-modality episode cost budget "
                           "(default: NavTaskSpec.budget, Safety Gym benchmark convention = 25.0)")
-    ap.add_argument("--k_p", type=float, default=1e-2)
-    ap.add_argument("--k_i", type=float, default=1e-3)
-    ap.add_argument("--k_d", type=float, default=1e-2)
+    # See src/cdp/lagrangian.py's "Gain history" docstring — original
+    # defaults left lambda two orders of magnitude too small after ~488
+    # updates in a 1M-step run.
+    ap.add_argument("--k_p", type=float, default=0.5)
+    ap.add_argument("--k_i", type=float, default=0.02)
+    ap.add_argument("--k_d", type=float, default=0.1)
     ap.add_argument("--fixed_lambda", type=float, default=0.05,
                      help="fixed_weight only: constant per-modality multiplier (RQ3 ablation).")
     ap.add_argument("--run_dir", default=None)
