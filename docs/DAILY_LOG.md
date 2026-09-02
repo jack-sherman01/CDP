@@ -709,3 +709,30 @@ against the joint-exposure checkpoints in both domains, run the corruption
 robustness / modality-dropout / budget-sensitivity ablations, and generate
 the remaining comparison videos (`add_firewood`, `pour_water`,
 `fill_bowl`).
+
+## 2026-09-01 (cont.) — Bug found and fixed: nav-domain Lagrangian callback was inert
+
+First full nav-domain training queue (18 runs) completed and was evaluated
+(34 in-distribution/zero-shot/joint-exposure eval combos). RQ1 result came
+back null (no consistent STCR advantage for `vector_lagrangian` over
+`scalar_lagrangian`) — investigated by checking `lambda_final.json` for
+every `*_lagrangian` checkpoint and found all of them stuck at exactly
+`0.0`. Root cause: `LagrangianUpdateCallback` hardcoded the manipulation
+domain's `info["damage_by_modality"]` key; `NavTaskEnv` uses
+`info["cost_by_modality"]`, so the callback never found anything to
+accumulate and silently no-op'd every rollout for the whole 1M-step run.
+`scalar_lagrangian`/`vector_lagrangian` were effectively running as
+`task_only` this whole time in the nav domain. Manipulation domain
+unaffected (verified against the actually-running `scalar_lagrangian_
+pick_egg` log — lambda climbing normally there).
+
+Fixed by adding a configurable `info_key` param to
+`LagrangianUpdateCallback` (`src/cdp/lagrangian_callback.py`), wired
+correctly in `scripts_nav/train_ppo_nav.py`. Deleted and relaunched the 10
+affected nav runs (`scripts_nav/retrain_lagrangian_fix.sh`) — `task_only`/
+`fixed_weight` checkpoints (unaffected, don't use this callback) were
+kept. Full writeup: `private/CONTRIBUTIONS_LOG.md` entry 13.
+
+Manipulation queue status: 3/14 done (`task_only_pick_egg`,
+`scalar_lagrangian_pick_egg`, `vector_lagrangian_pick_egg`), now on
+`task_only_add_firewood` (run 4/14).

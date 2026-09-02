@@ -111,7 +111,9 @@ def main():
     )
 
     callback = (
-        LagrangianUpdateCallback(lagrangian, lam_state, modalities=modalities, verbose=1)
+        LagrangianUpdateCallback(
+            lagrangian, lam_state, modalities=modalities, info_key="cost_by_modality", verbose=1,
+        )
         if lagrangian is not None else None
     )
     model.learn(total_timesteps=args.total_timesteps, callback=callback)
