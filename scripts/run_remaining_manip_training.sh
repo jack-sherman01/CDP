@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Remaining manipulation-domain runs after the entry-14 PID gain fix
-# (private/CONTRIBUTIONS_LOG.md): task_only_pick_egg/add_firewood and
-# vector_lagrangian_pick_egg are already done (task_only unaffected by
-# gains; vector_lagrangian_pick_egg was the validation run for the new
-# gains, already real production data). Everything else either never ran
-# or ran with the old, too-weak gains (quarantined in
+# (private/CONTRIBUTIONS_LOG.md). task_only is unaffected by the pivot
+# entirely (never reads lambda) -- all 3 task_only checkpoints are the
+# original pre-pivot runs (2026-08-30) and stay valid as-is, no rerun
+# needed (a first pass at this script mistakenly re-ran task_only_
+# pour_water and appended 33 stray episodes onto the pre-pivot summary.jsonl
+# before being interrupted -- cleaned back to the original 51 rows).
+# vector_lagrangian_pick_egg is already done (the validation run for the
+# new gains, real production data, not a smoke test). Everything else
+# either never ran or ran with the old, too-weak gains (quarantined in
 # checkpoints/_STALE_WEAK_GAINS, runs/_STALE_WEAK_GAINS).
 set -euo pipefail
 
@@ -26,8 +30,6 @@ run() {
     > "$LOG_DIR/${tag}.log" 2>&1
   echo "=== [$(date -Is)] DONE  $tag ===" | tee -a "$LOG_DIR/${tag}.log"
 }
-
-run pour_water task_only
 
 run pick_egg scalar_lagrangian
 run add_firewood scalar_lagrangian

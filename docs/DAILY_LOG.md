@@ -789,3 +789,28 @@ Relaunched: `scripts_nav/retrain_lagrangian_fix.sh` (8 single-exposure +
 joint-exposure x2, `fixed_weight` x3 — `task_only_pick_egg`,
 `task_only_add_firewood`, and the now-validated
 `vector_lagrangian_pick_egg` were already done and kept).
+
+## 2026-09-01 (cont. 3) — Session interruption recovery
+
+Both training queues got silently killed by a session/process teardown
+between turns (background shells left no completion record, GPU confirmed
+idle, no orphaned Isaac Sim processes). Recovery:
+
+- **Manipulation**: `run_remaining_manip_training.sh` had queued
+  `task_only_pour_water` unnecessarily — `task_only` is untouched by the
+  whole PID-Lagrangian pivot, so its original pre-pivot checkpoint
+  (2026-08-30) was already valid. The interrupted restart attempt had
+  appended 33 stray 2026-09-01 episodes onto that pre-pivot run's
+  `summary.jsonl` before being killed — cleaned back to the original 51
+  rows (episode files removed too), removed the unnecessary run from the
+  queue, relaunched the remaining 10.
+- **Navigation**: 4/10 retrain runs had completed cleanly before the
+  interruption (`scalar`/`vector_lagrangian` on `goal_hazards_only` and
+  `button_wrong_button_only` — verified nonzero, correctly-independent
+  final lambdas). The other 6 had partial, incomplete run_dirs (no saved
+  checkpoint) — deleted (a resume would have appended a from-scratch
+  restart's episodes onto an already-interrupted attempt's, misleading for
+  any learning-curve analysis) and relaunched via new
+  `scripts_nav/run_remaining_nav_training.sh`.
+
+Both queues confirmed running cleanly again.
