@@ -925,3 +925,26 @@ realism:
 
 Both running now, non-conflicting (nav is CPU/MuJoCo, manip is the single
 Isaac Sim process).
+
+## 2026-09-03 (cont. 2) — Multi-seed replication REVISES the nav-domain
+RQ1/RQ2 findings
+
+Nav multi-seed (seeds 1-2, 20 training runs + 36 eval combos) complete.
+Important correction to entry 15/DAILY_LOG's earlier single-seed summary:
+neither the RQ1 "vector_lagrangian beats scalar_lagrangian on zero-shot"
+finding nor the RQ2 "joint-exposure underperforms single-exposure"
+finding replicates cleanly at n=3 seeds. RQ1 is now mixed (3 of 4 source
+tasks favor scalar_lagrangian, only button_wrong_button_only favors
+vector_lagrangian). RQ2's joint-exposure STCR (mean 0.133/0.067) is now
+roughly comparable to the single-exposure average, not clearly worse.
+Both single-seed snapshots happened to land on the more flattering/more
+dramatic side of noise. Recorded explicitly as a correction in
+`private/CONTRIBUTIONS_LOG.md` entry 18 rather than silently revising
+entries 15/16 — the paper should report multi-seed numbers as primary and
+state plainly that neither effect is confirmed in this domain at this
+sample size.
+
+Manipulation-domain multi-seed (seeds 1-2, pick_egg only, n=3 for the
+headline pair) is training/evaluating now — entry 16's single-seed manip
+finding hasn't been checked against multi-seed yet; treat it with the
+same caution until that lands.
