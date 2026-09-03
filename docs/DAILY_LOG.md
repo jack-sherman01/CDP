@@ -884,3 +884,13 @@ Next: generate the remaining comparison videos (add_firewood, pour_water
 in-distribution; food_in_microwave zero-shot with the new conditions),
 then corruption robustness / dropout / budget-sensitivity ablations if
 time allows.
+
+## 2026-09-03 (cont.) — Comparison videos regenerated with new conditions
+
+`scripts/generate_comparison_videos.sh` regenerated all 4 comparison
+videos with the new task_only/scalar_lagrangian/vector_lagrangian
+taxonomy (superseding the pre-pivot ones): `pick_egg_comparison.mp4`,
+`add_firewood_comparison.mp4`, `pour_water_comparison.mp4`
+(in-distribution, one episode/condition each) and
+`food_in_microwave_zeroshot_comparison.mp4` (the headline zero-shot
+result). All verified valid via ffprobe (3378x480, 10-13s each).
