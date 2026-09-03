@@ -851,3 +851,36 @@ both `food_in_microwave` and `fill_bowl`) for all 12 single-exposure
 checkpoints, plus in-distribution eval of both joint-exposure checkpoints
 -- 38 eval combos total, sequential (one Isaac Sim process at a time),
 running now.
+
+## 2026-09-03 — Manipulation eval queue complete: headline RQ1/RQ2/RQ3 results
+
+All 38 eval combos finished cleanly. `scripts/analyze.py` +
+`scripts/compute_compositional_gap.py` results (n=20/cell, single seed):
+
+- TCR=0 in every cell (expected at this budget — pre-pivot task_only
+  already had a <1% success rate over a longer 40k-step budget; not a
+  bug, just means STCR/SafetyGap are floor-effect-uninformative this
+  pass, and damage is the real signal).
+- RQ1 in-distribution: task_only damage 235.6-1766.1 vs. scalar_
+  lagrangian/vector_lagrangian/fixed_weight all ~0-17.3 across all 3
+  training tasks — clean, strong damage suppression.
+- RQ1/RQ3 zero-shot on food_in_microwave (the headline comparison):
+  median damage task_only=27.1, scalar_lagrangian=117.0,
+  fixed_weight=153.7, vector_lagrangian=18.6 — vector_lagrangian lowest of
+  all four, ~6.3x below scalar_lagrangian and ~8.3x below fixed_weight.
+- fill_bowl: all 4 conditions saturate ~40,000-40,200 damage (known
+  FrankaMounted-embodiment confound, entry 8) — confirmed still
+  uninformative, kept for completeness only.
+- RQ2: the joint-exposure checkpoint has WORSE damage on food_in_microwave
+  (mean 395.5/median 273.1, 95% budget-violation rate) than every
+  single-exposure zero-shot source (median 17.5-19.6, 15-45% violation) --
+  replicates the navigation domain's RQ2 anomaly (entry 15) independently,
+  in a different simulator with different tasks/hazards. Now looks like a
+  real, cross-domain-replicated property of joint-exposure training at
+  practical budgets, not a fluke — arguably the more interesting result of
+  the two. Full writeup: private/CONTRIBUTIONS_LOG.md entry 16.
+
+Next: generate the remaining comparison videos (add_firewood, pour_water
+in-distribution; food_in_microwave zero-shot with the new conditions),
+then corruption robustness / dropout / budget-sensitivity ablations if
+time allows.
