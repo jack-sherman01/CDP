@@ -894,3 +894,34 @@ taxonomy (superseding the pre-pivot ones): `pick_egg_comparison.mp4`,
 (in-distribution, one episode/condition each) and
 `food_in_microwave_zeroshot_comparison.mp4` (the headline zero-shot
 result). All verified valid via ffprobe (3378x480, 10-13s each).
+
+## 2026-09-03 (cont.) — Corruption robustness done; multi-seed replication launched
+
+`scripts/run_corruption_robustness.sh` (15 combos: scalar_lagrangian/
+vector_lagrangian/fixed_weight x 5 corruption kinds on pick_egg) complete.
+Finding: the two adaptive PID conditions show no measurable damage change
+under any corruption kind, but their uncorrupted baseline is also already
+0.0 median damage (floor effect); `fixed_weight` (same 0.0 baseline)
+degrades meaningfully under `gaussian` (median 0->40.3) and
+`modality_mask` (0->17.2) specifically -- the two kinds that corrupt
+per-step signal *magnitude* rather than temporal structure. Recorded with
+the floor-effect caveat in `private/CONTRIBUTIONS_LOG.md` entry 17.
+
+Everything through this point has been single-seed (n=1) per condition,
+against the proposal's call for 5 seeds (manipulation) / 3 seeds
+(navigation). Launched partial multi-seed replication given time/compute
+realism:
+- Navigation (`scripts_nav/run_nav_multiseed.sh`): seeds 1-2 for
+  scalar_lagrangian/vector_lagrangian across all 4 single-exposure tasks +
+  both joint-exposure composites (12 runs, cheap/parallel) -- this
+  completes the proposal's 3-seed target for the actual RQ1/RQ2 comparison
+  pair, deprioritizing task_only/fixed_weight (secondary baselines).
+- Manipulation (`scripts/run_manip_multiseed.sh`): seeds 1-2 for
+  task_only/scalar_lagrangian/vector_lagrangian on `pick_egg` only (6
+  runs, Isaac Sim, ~1.3-1.5hr/run) -- partial coverage (n=3 for the
+  headline pick_egg comparison, not the full 5-seed x 3-task target,
+  which isn't feasible in the remaining time budget) documented as such
+  rather than silently presented as complete.
+
+Both running now, non-conflicting (nav is CPU/MuJoCo, manip is the single
+Isaac Sim process).
