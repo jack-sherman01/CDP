@@ -948,3 +948,28 @@ Manipulation-domain multi-seed (seeds 1-2, pick_egg only, n=3 for the
 headline pair) is training/evaluating now — entry 16's single-seed manip
 finding hasn't been checked against multi-seed yet; treat it with the
 same caution until that lands.
+
+## 2026-09-04 — Manipulation multi-seed CONFIRMS the RQ1 headline finding
+
+Manipulation multi-seed (seeds 1-2, pick_egg, 12 eval combos) complete.
+Unlike the navigation domain (entry 18, which did not replicate cleanly),
+the manipulation domain's RQ1 finding holds up robustly: `vector_
+lagrangian` has the lowest zero-shot damage on `food_in_microwave` in
+EVERY one of 3 independent seeds (19.6/17.4/61.9 vs. `scalar_lagrangian`'s
+297.8/303.6/688.8 — a consistent 10-17x margin per seed, not a lucky
+single-seed snapshot). Notably `scalar_lagrangian` is worse than
+`task_only` zero-shot in every seed too, consistent with the proposal's
+hypothesized cross-modality-compensation failure mode.
+
+Overall picture across both domains: the mechanism and single-/joint-
+exposure/zero-shot protocol transfer cleanly across domains (RQ4's
+"identical code reused" claim, entry 12), but the RQ1 effect size does
+not transfer with the same reliability — robust in manipulation, mixed/
+unconfirmed in navigation at n=3. Recorded as the project's honest
+position on RQ4 in `private/CONTRIBUTIONS_LOG.md` entry 19, rather than
+overclaiming a clean cross-domain replication.
+
+This closes out the planned multi-seed replication push (partial scope:
+n=3 for the headline comparison pair in both domains, not the proposal's
+full 5-seed x every-condition target, which isn't feasible in the
+remaining time budget — documented as such throughout).
