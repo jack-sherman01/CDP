@@ -75,6 +75,54 @@ proposal stay traceable to each other.
 9. **Conclusion**
 10. **Reproducibility checklist** — see below.
 
+## Status as of 2026-09-04
+
+For a future paper-drafting pass — what's actually done vs. still open,
+so as not to have to reconstruct this from `docs/DAILY_LOG.md`'s full
+history. Full numbers and reasoning in `private/CONTRIBUTIONS_LOG.md`
+(not version-controlled, local only).
+
+**Done, with real data:**
+- RQ1 (both domains, multi-seed n=3 for the headline pair): robust,
+  consistent positive effect in manipulation (`vector_lagrangian` beats
+  `scalar_lagrangian` on zero-shot damage in 3/3 seeds, 10-17x margin);
+  mixed/not confirmed in navigation (3 of 4 source-task cells favor
+  `scalar_lagrangian` at n=3) — entries 15, 18, 19.
+- RQ2 (both domains, seed 0 only): joint-exposure underperforms
+  single-exposure zero-shot in both domains at seed 0; navigation-domain
+  finding did NOT replicate at n=3 (entry 18); manipulation-domain finding
+  has not yet been multi-seed-checked at all (entry 22) — do not report
+  it as more confirmed than the navigation result just because it wasn't
+  contradicted.
+- RQ3 (`fixed_weight` vs. `vector_lagrangian`): `vector_lagrangian` beats
+  `fixed_weight` by ~8x median zero-shot damage in manipulation (entry
+  16); not separately multi-seed-checked.
+- RQ4 (mechanism/protocol transfer): the PID-Lagrangian controller code
+  is used verbatim across both domains (entry 12) — but the *effect size*
+  does not transfer with the same reliability (entries 18-19). State this
+  domain-dependence directly, not smoothed over.
+- RQ5 (real robot): not executed, no hardware access from this
+  environment (`docs/PLAN.md`).
+- Corruption robustness (manipulation, pick_egg): adaptive conditions
+  unaffected by any corruption kind (floor effect — already at 0 baseline
+  damage); `fixed_weight` degrades under `gaussian`/`modality_mask`
+  specifically (entry 17).
+- Budget sensitivity (both domains, headline pair): clean monotonic
+  response in navigation; same direction but floor-limited in
+  manipulation (entries 20-21).
+- Modality dropout (manipulation only — no navigation-domain
+  implementation exists): no measurable cost to in-distribution safety
+  (entry 21).
+
+**Explicitly not done, flagged rather than silently absent:**
+- Full 5-seed (manipulation) / 3-seed (navigation) x every condition
+  replication — only the RQ1 headline pair got partial multi-seed
+  coverage (n=3), everything else remains n=1.
+- RoboCasa cross-simulator generalization (`docs/DECISIONS.md`).
+- Navigation-domain modality-dropout ablation (no corruption wrapper
+  built for `src/cdp_nav`).
+- Real-robot RQ5 trials.
+
 ## Reproducibility checklist
 
 To fill in once experiments are complete:
