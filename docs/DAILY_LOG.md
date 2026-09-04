@@ -973,3 +973,14 @@ This closes out the planned multi-seed replication push (partial scope:
 n=3 for the headline comparison pair in both domains, not the proposal's
 full 5-seed x every-condition target, which isn't feasible in the
 remaining time budget — documented as such throughout).
+
+## 2026-09-04 (cont.) — Budget-sensitivity ablation: clean, expected result
+
+Nav budget-sensitivity (goal_hazards_only/vector_lagrangian, budget in
+{12.5, 25 default, 50}) complete: clean monotonic relationship -- tighter
+budget produces a larger multiplier, lower realized cost, and higher
+STCR; looser budget the reverse (mean cost 23.1/68.8/80.2, STCR
+0.55/0.30/0.10 across the three budgets). Good independent confirmation
+the PID mechanism behaves as designed. Full numbers in
+private/CONTRIBUTIONS_LOG.md entry 20. Manipulation-domain modality-
+dropout run also complete, budget-sensitivity runs in progress.
