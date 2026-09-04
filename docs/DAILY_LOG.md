@@ -984,3 +984,24 @@ STCR; looser budget the reverse (mean cost 23.1/68.8/80.2, STCR
 the PID mechanism behaves as designed. Full numbers in
 private/CONTRIBUTIONS_LOG.md entry 20. Manipulation-domain modality-
 dropout run also complete, budget-sensitivity runs in progress.
+
+## 2026-09-04 (cont. 2) — Ablations complete; Phase 1-3 checklist closed
+out at partial-but-documented scope
+
+Manipulation budget-sensitivity (pick_egg/vector_lagrangian, budget in
+{15, 30 default, 60}) and modality-dropout (p=0.2) evals complete.
+Budget: mean damage 0.00/0.00/12.60 -- same "looser budget lets more
+damage through" direction as the nav-domain result (entry 20), though
+less dramatic here since the default-budget condition was already at the
+damage floor. Dropout: 0.00, identical to no-dropout -- training with a
+20%-per-step chance of a zeroed observation channel didn't measurably
+hurt in-distribution safety behavior. Full numbers in
+private/CONTRIBUTIONS_LOG.md entry 21.
+
+This closes out docs/PLAN.md's Phase 1-3 ablations checklist at the scope
+this project's time budget actually allowed: single task/condition pair
+per ablation rather than the full grid, explicitly documented as such
+throughout rather than silently presented as complete. Remaining
+out-of-scope items (all previously flagged, not new): full 5-seed/3-seed
+multi-condition replication, RoboCasa cross-simulator generalization,
+navigation-domain modality dropout, real-robot RQ5.
