@@ -1005,3 +1005,26 @@ throughout rather than silently presented as complete. Remaining
 out-of-scope items (all previously flagged, not new): full 5-seed/3-seed
 multi-condition replication, RoboCasa cross-simulator generalization,
 navigation-domain modality dropout, real-robot RQ5.
+
+## 2026-09-05 — RQ2 manipulation multi-seed gap closed (entry 22 -> 23)
+
+Added seeds 1-2 for the `vector_lagrangian` joint-exposure checkpoint on
+`food_in_microwave`. Per-seed median damage: joint-exposure
+273.1/155.5/20.4 vs. single-exposure zero-shot (from pick_egg)
+19.6/17.4/61.9. Unlike the navigation domain (where the RQ2 effect fully
+washed out), this partially holds: 2 of 3 seeds still show joint-exposure
+far worse, one seed flips. Net direction (mean of medians 149.7 vs. 33.0)
+still favors single-exposure, but noisier than RQ1's clean 3/3 result.
+
+This completes the multi-seed replication effort for both RQ1 and RQ2 in
+both domains. Summary table (private/CONTRIBUTIONS_LOG.md entry 23):
+
+| Finding | Manipulation | Navigation |
+|---|---|---|
+| RQ1 (vector > scalar, zero-shot) | Holds, 3/3 seeds | Mixed, 3/4 tasks against |
+| RQ2 (joint-exposure worse) | Partially holds, 2/3 seeds | Washes to comparable |
+
+No further multi-seed work planned unless more compute becomes available.
+This is the final planned experimental thread for the current scope; the
+project now has a complete, honestly-reported set of RQ1-4 results ready
+for a paper-drafting pass, per docs/PAPER_OUTLINE.md's status section.
