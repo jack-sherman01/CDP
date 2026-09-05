@@ -24,7 +24,10 @@ from cdp.corruption import CorruptedObservationWrapper, CorruptionConfig
 from cdp.lagrangian import LambdaState
 from cdp.logger import EpisodeLogger
 from cdp.obs_wrapper import MODALITIES, DamageObservationWrapper, ObsMode
-from cdp.reward import TaskRewardComputer, TaskRewardConfig, apply_damage_penalty
+from cdp.reward import (
+    JointOpenRewardComputer, JointOpenRewardConfig, TaskRewardComputer, TaskRewardConfig,
+    WipeRewardComputer, WipeRewardConfig, apply_damage_penalty,
+)
 from cdp.tasks import TaskSpec, get_task_spec, load_task_module
 
 # condition -> observation structure (proposal.tex "Policy Representations"):
@@ -129,14 +132,7 @@ class CDPTaskEnv(gym.Env):
         if corruption is not None and corruption.kind != "none":
             assert obs_mode != "task", "corruption targets the damage/health block; task mode has none"
             self._obs_source = CorruptedObservationWrapper(self._obs_wrapper, corruption, seed=seed)
-        self._reward_computer = TaskRewardComputer(
-            self._base_env,
-            TaskRewardConfig(
-                primary_object_name=self.spec_.primary_object_name,
-                goal_object_name=self.spec_.goal_object_name,
-                completion_check=mod.task_completion_check,
-            ),
-        )
+        self._reward_computer = self._build_reward_computer(mod)
 
         self.logger = (
             EpisodeLogger(run_dir=run_dir, condition=condition, task_name=task_name, seed=seed)
@@ -169,6 +165,39 @@ class CDPTaskEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=probe_obs.shape, dtype=np.float32
         )
         self._step_count = 0
+
+    def _build_reward_computer(self, mod):
+        """Dispatches on TaskSpec.reward_mode — "carry" (grasp-and-place,
+        the original 3 tasks), "wipe" (wipe_counter), "joint_open"
+        (open_drawer/open_single_door). See src/cdp/reward.py."""
+        mode = self.spec_.reward_mode
+        if mode == "carry":
+            return TaskRewardComputer(
+                self._base_env,
+                TaskRewardConfig(
+                    primary_object_name=self.spec_.primary_object_name,
+                    goal_object_name=self.spec_.goal_object_name,
+                    completion_check=mod.task_completion_check,
+                ),
+            )
+        if mode == "wipe":
+            return WipeRewardComputer(
+                self._base_env,
+                WipeRewardConfig(
+                    sponge_object_name=self.spec_.primary_object_name,
+                    dirt_state_attr=self.spec_.dirt_state_attr,
+                    completion_check=mod.task_completion_check,
+                ),
+            )
+        if mode == "joint_open":
+            return JointOpenRewardComputer(
+                self._base_env,
+                JointOpenRewardConfig(
+                    target_object_name=self.spec_.primary_object_name,
+                    completion_check=mod.task_completion_check,
+                ),
+            )
+        raise ValueError(f"unknown reward_mode {mode!r}")
 
     # IK arm controllers here use command_input_limits=None (raw, unbounded
     # deltas) — SB3 requires a finite Box, so unbounded dims get clipped to

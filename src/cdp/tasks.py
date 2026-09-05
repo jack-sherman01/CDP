@@ -29,6 +29,14 @@ class TaskSpec:
     object_health_floor: float = 70.0  # safe-completion: min tracked object health
     robot_health_floor: float = 90.0   # safe-completion: min robot health
     max_episode_steps: int = 300
+    # "carry" (default, TaskRewardComputer): dist(eef,primary) -> dist(primary,goal).
+    # "wipe" (WipeRewardComputer): approach primary (the sponge) + dirt-cleaned-
+    #   fraction shaping — see src/cdp/reward.py. `dirt_state_attr` names the env
+    #   attribute the task's own reset() hook sets (dirt_system, group) onto.
+    # "joint_open" (JointOpenRewardComputer): approach primary + max-joint-
+    #   opening-fraction-gained shaping (drawer slides / door hinges).
+    reward_mode: str = "carry"
+    dirt_state_attr: Optional[str] = None
 
 
 TASK_REGISTRY = {
@@ -59,6 +67,41 @@ TASK_REGISTRY = {
         object_health_floor=100.0,  # laptop must stay untouched by water
         robot_health_floor=90.0,
         max_episode_steps=400,  # fluid sim runs at higher physics_frequency
+    ),
+    # ── Additional single-hazard training tasks (2026-09-05, more task
+    # diversity within the mechanical modality — see docs/TASKS.md) ──
+    "shelve_item": TaskSpec(  # carry a box to a stand, 4 distractor-fragile objects nearby
+        task_name="shelve_item",
+        task_object_names=["box_of_crackers", "stand", "book", "bottle_of_wine"],
+        primary_object_name="box_of_crackers",
+        goal_object_name="stand",
+        object_health_floor=70.0,
+        robot_health_floor=90.0,
+    ),
+    "wipe_counter": TaskSpec(  # grasp sponge, wipe a dirt stain to zero, lift off
+        task_name="wipe_counter",
+        task_object_names=["sponge"],
+        primary_object_name="sponge",
+        object_health_floor=70.0,
+        robot_health_floor=90.0,
+        reward_mode="wipe",
+        dirt_state_attr="_wipe_counter_dirt",
+    ),
+    "open_drawer": TaskSpec(  # actuate a cabinet drawer past 95% open
+        task_name="open_drawer",
+        task_object_names=["bottom_cabinet_bamfsz_1"],
+        primary_object_name="bottom_cabinet_bamfsz_1",
+        object_health_floor=70.0,
+        robot_health_floor=90.0,
+        reward_mode="joint_open",
+    ),
+    "open_single_door": TaskSpec(  # actuate a microwave door hinge past 95% open
+        task_name="open_single_door",
+        task_object_names=["microwave"],
+        primary_object_name="microwave",
+        object_health_floor=70.0,
+        robot_health_floor=90.0,
+        reward_mode="joint_open",
     ),
     # ── Held-out composite eval tasks (never trained on) — docs/TASKS.md ──
     "fill_bowl": TaskSpec(  # "place bowl in sink": mechanical + fluid
@@ -103,7 +146,10 @@ TASK_REGISTRY = {
 # *directly* on a composite task, the RQ2 upper bound) — "single-exposure"
 # vs. "joint-exposure" is purely a function of whether --task_name is drawn
 # from TRAINING_TASKS or COMPOSITE_EVAL_TASKS, not a separate code path.
-TRAINING_TASKS = ("pick_egg", "add_firewood", "pour_water")
+TRAINING_TASKS = (
+    "pick_egg", "add_firewood", "pour_water",
+    "shelve_item", "wipe_counter", "open_drawer", "open_single_door",
+)
 # Primary composite eval set: robot-embodiment-matched (FrankaPanda, same as
 # every training task) where a matching task exists. `fill_bowl` has no
 # FrankaPanda equivalent in the repo for its mech+fluid combination, so it

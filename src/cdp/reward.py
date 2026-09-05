@@ -165,6 +165,129 @@ class TaskRewardComputer:
         return r, (success_now or self._already_completed)
 
 
+@dataclass
+class WipeRewardConfig:
+    """`wipe_counter`: no fixed carry-to-goal target — completion is "reduce
+    a dirt-particle stain on a surface to zero, then lift off." Shaping:
+    approach the sponge, then reward tracks fraction of dirt cleaned (0->1)
+    continuously, mirroring pick_egg's height-gained shaping but for a
+    cleaning progress signal instead of a lift height."""
+    sponge_object_name: str
+    dirt_state_attr: str  # env attribute name holding (dirt_system, group), set by the task's own reset() hook
+    completion_check: Callable
+    shaping_scale: float = DEFAULT_SHAPING_SCALE
+    clean_scale: float = DEFAULT_LIFT_SCALE
+    grasp_bonus: float = DEFAULT_GRASP_BONUS
+    time_penalty: float = DEFAULT_TIME_PENALTY
+    completion_bonus: float = DEFAULT_COMPLETION_BONUS
+
+
+class WipeRewardComputer:
+    def __init__(self, env, config: WipeRewardConfig):
+        self.env = env
+        self.config = config
+        self._already_completed = False
+        self._initial_dirt_count: int = 1
+
+    def reset(self) -> None:
+        self._already_completed = False
+        dirt_system, group = getattr(self.env, self.config.dirt_state_attr)
+        self._initial_dirt_count = max(1, int(dirt_system.num_group_particles(group=group)))
+
+    def compute(self) -> tuple[float, bool]:
+        robot = self.env.robots[0]
+        eef_pos = _to_np(robot.get_eef_position())
+        sponge = self.env.scene.object_registry("name", self.config.sponge_object_name)
+        dist = 0.0
+        is_grasping = False
+        if sponge is not None:
+            sponge_pos, _ = sponge.get_position_orientation()
+            dist = float(np.linalg.norm(eef_pos - _to_np(sponge_pos)))
+            if hasattr(robot, "is_grasping"):
+                try:
+                    from omnigibson.controllers.controller_base import IsGraspingState
+                    is_grasping = robot.is_grasping(candidate_obj=sponge).value == IsGraspingState.TRUE
+                except Exception:
+                    is_grasping = False
+
+        dirt_system, group = getattr(self.env, self.config.dirt_state_attr)
+        remaining = int(dirt_system.num_group_particles(group=group))
+        cleaned_fraction = 1.0 - (remaining / self._initial_dirt_count)
+
+        success_now = bool(self.config.completion_check(self.env))
+        r = (
+            -self.config.shaping_scale * dist
+            + self.config.clean_scale * cleaned_fraction
+            + (self.config.grasp_bonus if is_grasping else 0.0)
+            - self.config.time_penalty
+        )
+        if success_now and not self._already_completed:
+            r += self.config.completion_bonus
+            self._already_completed = True
+        return r, (success_now or self._already_completed)
+
+
+@dataclass
+class JointOpenRewardConfig:
+    """`open_drawer`/`open_single_door`: no object to carry — completion is
+    "actuate a joint (drawer slide / door hinge) past 95% of its range."
+    Shaping: approach the target object, then reward tracks the MAX joint-
+    opening fraction gained across all of the object's joints (matches
+    `task_completion_check`'s "any joint past threshold" semantics)."""
+    target_object_name: str
+    completion_check: Callable
+    shaping_scale: float = DEFAULT_SHAPING_SCALE
+    open_scale: float = DEFAULT_LIFT_SCALE
+    time_penalty: float = DEFAULT_TIME_PENALTY
+    completion_bonus: float = DEFAULT_COMPLETION_BONUS
+
+
+class JointOpenRewardComputer:
+    def __init__(self, env, config: JointOpenRewardConfig):
+        self.env = env
+        self.config = config
+        self._already_completed = False
+        self._initial_fraction = 0.0
+
+    @staticmethod
+    def _max_joint_fraction(obj) -> float:
+        fracs = []
+        for j in obj.joints.values():
+            lo, hi = j.lower_limit, j.upper_limit
+            if hi - lo <= 1e-6:
+                continue
+            fracs.append(float((j.get_state()[0] - lo) / (hi - lo)))
+        return max(fracs) if fracs else 0.0
+
+    def reset(self) -> None:
+        self._already_completed = False
+        obj = self.env.scene.object_registry("name", self.config.target_object_name)
+        self._initial_fraction = self._max_joint_fraction(obj) if obj is not None else 0.0
+
+    def compute(self) -> tuple[float, bool]:
+        robot = self.env.robots[0]
+        eef_pos = _to_np(robot.get_eef_position())
+        obj = self.env.scene.object_registry("name", self.config.target_object_name)
+        dist = 0.0
+        open_gain = 0.0
+        if obj is not None:
+            obj_pos, _ = obj.get_position_orientation()
+            dist = float(np.linalg.norm(eef_pos - _to_np(obj_pos)))
+            frac = self._max_joint_fraction(obj)
+            open_gain = max(0.0, frac - self._initial_fraction)
+
+        success_now = bool(self.config.completion_check(self.env))
+        r = (
+            -self.config.shaping_scale * dist
+            + self.config.open_scale * open_gain
+            - self.config.time_penalty
+        )
+        if success_now and not self._already_completed:
+            r += self.config.completion_bonus
+            self._already_completed = True
+        return r, (success_now or self._already_completed)
+
+
 Condition = str  # "task_only" | "scalar_lagrangian" | "vector_lagrangian" | "fixed_weight"
 
 
