@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Training queue for the 3 new manipulation tasks added 2026-09-05
-# (shelve_item, open_drawer, open_single_door — wipe_counter excluded,
-# see its TaskSpec comment in src/cdp/tasks.py). Full 4-condition sweep
+# Training queue for the new manipulation tasks added 2026-09-05
+# (open_drawer, open_single_door). wipe_counter excluded (particle-system
+# bug) and shelve_item excluded (upstream reset()'s randomize-and-retry
+# loop made one run take ~6.5 hours, 4-5x every other task) — see their
+# TaskSpec comments in src/cdp/tasks.py. Full 4-condition sweep
 # (task_only/scalar_lagrangian/vector_lagrangian/fixed_weight) at seed 0,
 # same 20,000-step budget as the original 3 tasks. Sequential — one Isaac
 # Sim process at a time.
@@ -26,7 +28,7 @@ run() {
   echo "=== [$(date -Is)] DONE  $tag ===" | tee -a "$LOG_DIR/${tag}.log"
 }
 
-for task in shelve_item open_drawer open_single_door; do
+for task in open_drawer open_single_door; do
   for cond in task_only scalar_lagrangian vector_lagrangian fixed_weight; do
     run "$task" "$cond"
   done

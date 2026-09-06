@@ -71,6 +71,16 @@ TASK_REGISTRY = {
     # ── Additional single-hazard training tasks (2026-09-05, more task
     # diversity within the mechanical modality — see docs/TASKS.md) ──
     "shelve_item": TaskSpec(  # carry a box to a stand, 4 distractor-fragile objects nearby
+        # NOT in TRAINING_TASKS (2026-09-06): the upstream reset() hook has
+        # a randomize-then-check-all-objects-upright retry loop (each
+        # attempt stops/restarts physics and resettles) that made a single
+        # 20k-step run take ~6.5 hours -- 4-5x every other task in this
+        # project, prohibitive across a 4-condition sweep. Not a
+        # correctness problem (live smoke test and 2 full training runs
+        # completed successfully, see the quarantined checkpoints under
+        # checkpoints/_EXCLUDED_SLOW_RESET/), purely a wall-clock one.
+        # Kept registered in case a future pass has time to either patch
+        # the retry loop or just accept the cost.
         task_name="shelve_item",
         task_object_names=["box_of_crackers", "stand", "book", "bottle_of_wine"],
         primary_object_name="box_of_crackers",
@@ -158,8 +168,9 @@ TASK_REGISTRY = {
 # from TRAINING_TASKS or COMPOSITE_EVAL_TASKS, not a separate code path.
 TRAINING_TASKS = (
     "pick_egg", "add_firewood", "pour_water",
-    "shelve_item", "open_drawer", "open_single_door",
-    # "wipe_counter" intentionally excluded — see its TaskSpec comment.
+    "open_drawer", "open_single_door",
+    # "wipe_counter" and "shelve_item" intentionally excluded — see their
+    # TaskSpec comments (particle-system bug / prohibitive wall-clock cost).
 )
 # Primary composite eval set: robot-embodiment-matched (FrankaPanda, same as
 # every training task) where a matching task exists. `fill_bowl` has no
