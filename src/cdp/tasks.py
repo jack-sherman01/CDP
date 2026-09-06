@@ -79,6 +79,16 @@ TASK_REGISTRY = {
         robot_health_floor=90.0,
     ),
     "wipe_counter": TaskSpec(  # grasp sponge, wipe a dirt stain to zero, lift off
+        # NOT in TRAINING_TASKS (2026-09-05): the upstream dirt-particle
+        # attachment group ("bar_udatjt_0"-style names) intermittently/
+        # deterministically fails a _validate_group check right after the
+        # task's own reset() hook creates it -- reproduced with a 5-attempt
+        # settle-and-retry in WipeRewardComputer.reset(), still fails.
+        # Looks like an OmniGibson particle-system lifecycle issue, not a
+        # bug in our reward code (task_completion_check hits the identical
+        # unguarded call). Kept registered (reward mode + wiring all exist
+        # and work up to this point) in case it's worth revisiting, but
+        # excluded from TRAINING_TASKS so it can't be silently selected.
         task_name="wipe_counter",
         task_object_names=["sponge"],
         primary_object_name="sponge",
@@ -148,7 +158,8 @@ TASK_REGISTRY = {
 # from TRAINING_TASKS or COMPOSITE_EVAL_TASKS, not a separate code path.
 TRAINING_TASKS = (
     "pick_egg", "add_firewood", "pour_water",
-    "shelve_item", "wipe_counter", "open_drawer", "open_single_door",
+    "shelve_item", "open_drawer", "open_single_door",
+    # "wipe_counter" intentionally excluded — see its TaskSpec comment.
 )
 # Primary composite eval set: robot-embodiment-matched (FrankaPanda, same as
 # every training task) where a matching task exists. `fill_bowl` has no

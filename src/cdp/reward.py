@@ -192,7 +192,24 @@ class WipeRewardComputer:
     def reset(self) -> None:
         self._already_completed = False
         dirt_system, group = getattr(self.env, self.config.dirt_state_attr)
-        self._initial_dirt_count = max(1, int(dirt_system.num_group_particles(group=group)))
+        # The task's own reset() hook creates this attachment group just
+        # before we get here, but CDPTaskEnv.reset() runs a few more
+        # og.sim.step() calls in between (for damage-tracking reset) that
+        # can occasionally leave the group not yet registered when we first
+        # ask — a timing/race condition in the underlying particle system,
+        # not specific to this reward code (task_completion_check hits the
+        # exact same call). A couple of settle-steps-and-retry cycles
+        # resolves it; if it never resolves, fail loudly rather than
+        # silently reporting a wrong baseline.
+        import omnigibson as og
+        for attempt in range(5):
+            try:
+                self._initial_dirt_count = max(1, int(dirt_system.num_group_particles(group=group)))
+                return
+            except ValueError:
+                if attempt == 4:
+                    raise
+                og.sim.step()
 
     def compute(self) -> tuple[float, bool]:
         robot = self.env.robots[0]
@@ -211,7 +228,16 @@ class WipeRewardComputer:
                     is_grasping = False
 
         dirt_system, group = getattr(self.env, self.config.dirt_state_attr)
-        remaining = int(dirt_system.num_group_particles(group=group))
+        # Same transient-group issue as reset() can in principle recur
+        # mid-episode; task_completion_check (upstream, unguarded) would
+        # crash on it too, so this is best-effort only — reuse the last
+        # known count rather than crash the whole training run over one
+        # noisy reward term.
+        try:
+            remaining = int(dirt_system.num_group_particles(group=group))
+            self._last_remaining = remaining
+        except ValueError:
+            remaining = getattr(self, "_last_remaining", self._initial_dirt_count)
         cleaned_fraction = 1.0 - (remaining / self._initial_dirt_count)
 
         success_now = bool(self.config.completion_check(self.env))
