@@ -61,6 +61,12 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--n_episodes", type=int, default=20)
     ap.add_argument("--deterministic", action="store_true", default=True)
+    ap.add_argument("--stochastic", action="store_true",
+                     help="sample actions instead of taking the deterministic mean — for "
+                          "sparse-success tasks the policy's mean action can be more "
+                          "conservative than what it actually achieves under the sampling "
+                          "noise it trained with (observed: pick_egg deterministic eval "
+                          "under-catches successes relative to training-time success rate).")
     ap.add_argument("--run_dir", default=None)
     ap.add_argument("--corruption_kind", default="none", choices=CORRUPTION_KINDS,
                      help="Day-20 damage-signal corruption robustness test")
@@ -130,7 +136,7 @@ def main():
         obs, _ = env.reset()
         done = False
         while not done:
-            action, _ = model.predict(obs, deterministic=args.deterministic)
+            action, _ = model.predict(obs, deterministic=(args.deterministic and not args.stochastic))
             obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
 
