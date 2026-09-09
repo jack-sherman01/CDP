@@ -1028,3 +1028,39 @@ No further multi-seed work planned unless more compute becomes available.
 This is the final planned experimental thread for the current scope; the
 project now has a complete, honestly-reported set of RQ1-4 results ready
 for a paper-drafting pass, per docs/PAPER_OUTLINE.md's status section.
+
+## 2026-09-09 — Critical bug found: pick_egg's completion check had no
+grasping requirement, invalidating all pick_egg success/TCR claims to date
+
+User reported the saved "success" videos looked like 0-second clips.
+Investigation: both were real files, but only 2 frames / 0.067s —
+episode_length=1. Checked across the entire project's pick_egg data: 100%
+of every recorded "success" (20k budget, 100k budget, every condition,
+every seed) has episode_length == 1. Root cause: `pick_egg`'s upstream
+`task_completion_check` (oopsiebench/envs/behavior1k/pick_egg.py) only
+checks `egg_height - table_height >= 0.25m`, with no requirement that the
+robot is actually holding the egg — unlike every other task's check (all
+gate on `is_grasping` or real particle-physics evidence). A violent/
+erratic first action can physically launch the lightweight egg past the
+threshold without ever being grasped, firing a false-positive success
+immediately. Worse: `TaskRewardComputer` grants `+completion_bonus` on
+this same check, so every pick_egg checkpoint trained before this fix was
+being rewarded for flinging the egg, not picking it up — a corrupted
+training signal, not just a miscounted eval.
+
+Audited `add_firewood`/`pour_water`'s checks: NOT affected (real
+grasping-state/particle-physics gates; their sparse successes have
+realistic 164-189+ step episode lengths).
+
+Fixed via `src/cdp/tasks.py::get_completion_check` (an override mechanism,
+used by `gym_env.py`), wrapping pick_egg's check with an `is_grasping`
+requirement matching every other task's pattern. All 4 already-completed
+100k-step pick_egg checkpoints (from the active campaign) were quarantined
+(not deleted) under `checkpoints/runs`' `_INVALID_COMPLETION_BUG/`, along
+with their zero-shot eval and video artifacts. The 2 videos saved to
+`results/videos/successes/` (the ones the user flagged) were removed
+entirely — both were confirmed false positives, not real completions.
+
+Full writeup: private/CONTRIBUTIONS_LOG.md entry 25. Campaign relaunched
+(resumable design automatically retrains pick_egg first since its
+checkpoints are now missing, then continues to where it left off).
