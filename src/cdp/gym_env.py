@@ -28,7 +28,7 @@ from cdp.reward import (
     JointOpenRewardComputer, JointOpenRewardConfig, TaskRewardComputer, TaskRewardConfig,
     WipeRewardComputer, WipeRewardConfig, apply_damage_penalty,
 )
-from cdp.tasks import TaskSpec, get_task_spec, load_task_module
+from cdp.tasks import TaskSpec, get_completion_check, get_task_spec, load_task_module
 
 # condition -> observation structure (proposal.tex "Policy Representations"):
 # task_only sees no hazard info; scalar_lagrangian sees one aggregate
@@ -177,7 +177,7 @@ class CDPTaskEnv(gym.Env):
                 TaskRewardConfig(
                     primary_object_name=self.spec_.primary_object_name,
                     goal_object_name=self.spec_.goal_object_name,
-                    completion_check=mod.task_completion_check,
+                    completion_check=get_completion_check(self.task_name, mod),
                 ),
             )
         if mode == "wipe":
@@ -186,7 +186,7 @@ class CDPTaskEnv(gym.Env):
                 WipeRewardConfig(
                     sponge_object_name=self.spec_.primary_object_name,
                     dirt_state_attr=self.spec_.dirt_state_attr,
-                    completion_check=mod.task_completion_check,
+                    completion_check=get_completion_check(self.task_name, mod),
                 ),
             )
         if mode == "joint_open":
@@ -194,7 +194,7 @@ class CDPTaskEnv(gym.Env):
                 self._base_env,
                 JointOpenRewardConfig(
                     target_object_name=self.spec_.primary_object_name,
-                    completion_check=mod.task_completion_check,
+                    completion_check=get_completion_check(self.task_name, mod),
                 ),
             )
         raise ValueError(f"unknown reward_mode {mode!r}")

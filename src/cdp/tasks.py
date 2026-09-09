@@ -185,6 +185,57 @@ def load_task_module(task_name: str):
     return importlib.import_module(f"{TASK_CONFIG_PACKAGE}.{task_name}")
 
 
+def _pick_egg_completion_check_grasp_gated(env):
+    """Bugfix wrapper (2026-09-09) for `pick_egg`'s upstream
+    `task_completion_check` (oopsiebench/envs/behavior1k/pick_egg.py),
+    which only checks `egg_height - table_height >= 0.25m` — with NO
+    grasping requirement, unlike every other task's completion check
+    (add_firewood/shelve_item/open_drawer/open_single_door all gate on
+    `is_grasping`; pour_water requires actual poured particles). This lets
+    a violent/erratic action physically LAUNCH the lightweight egg past
+    the height threshold without the robot ever holding it, firing a false
+    positive success on the very step it happens.
+
+    Confirmed empirically (private/CONTRIBUTIONS_LOG.md): of every
+    "success" recorded across the whole project's pick_egg runs (both the
+    20k- and 100k-step budgets, every condition/seed), **100% have
+    `episode_length == 1`** — a real reach-grasp-lift sequence cannot
+    complete in a single env step, so none of them were real picks. Worse,
+    since `TaskRewardComputer` grants `+completion_bonus` on this same
+    check, every pick_egg checkpoint trained before this fix was rewarded
+    for flinging the egg, not picking it up — not just an eval-time
+    miscount, a corrupted training signal.
+
+    Fix: require the robot to actually be grasping the egg at the moment
+    the height check passes, matching the pattern every other task's
+    check already uses. `pick_egg` checkpoints trained before this fix
+    need to be retrained, not just re-evaluated.
+    """
+    mod = load_task_module("pick_egg")
+    if not mod.task_completion_check(env):
+        return False
+    egg = env.scene.object_registry("name", "egg")
+    robot = env.robots[0] if getattr(env, "robots", None) else None
+    if egg is None or robot is None or not hasattr(robot, "is_grasping"):
+        return False
+    try:
+        from omnigibson.controllers.controller_base import IsGraspingState
+        return robot.is_grasping(candidate_obj=egg).value == IsGraspingState.TRUE
+    except Exception:
+        return False
+
+
+_COMPLETION_CHECK_OVERRIDES = {
+    "pick_egg": _pick_egg_completion_check_grasp_gated,
+}
+
+
+def get_completion_check(task_name: str, mod):
+    """Returns the completion check to actually use for this task — the
+    task module's own `task_completion_check` unless overridden above."""
+    return _COMPLETION_CHECK_OVERRIDES.get(task_name, mod.task_completion_check)
+
+
 def get_task_spec(task_name: str) -> TaskSpec:
     if task_name not in TASK_REGISTRY:
         raise KeyError(f"Unknown task {task_name!r}; available: {sorted(TASK_REGISTRY)}")
