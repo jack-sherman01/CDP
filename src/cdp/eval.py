@@ -91,6 +91,25 @@ def violation_rate(rows: Sequence[dict], modality: str, budget: float) -> float:
     return sum(1 for v in vals if v > budget) / len(vals)
 
 
+def suspiciously_short_success_rate(rows: Sequence[dict], min_plausible_steps: int = 5) -> float:
+    """Sanity check added 2026-09-09 after `pick_egg`'s completion-check bug
+    (private/CONTRIBUTIONS_LOG.md entry 25): 100% of that task's recorded
+    "successes" turned out to be `episode_length == 1` false positives (a
+    task_completion_check with no grasping requirement, satisfiable by
+    physically launching an object rather than actually manipulating it).
+    Nothing in this pipeline flagged that automatically — it took a user
+    noticing a saved video looked like 0 seconds. Returns the fraction of
+    successful episodes whose length is implausibly short for the kind of
+    multi-phase (reach/grasp/manipulate) task this project trains on;
+    `scripts/analyze.py` should print a loud warning if this is high,
+    rather than silently reporting a possibly-fake TCR/STCR."""
+    succ = [r for r in rows if r.get("success")]
+    if not succ:
+        return float("nan")
+    short = sum(1 for r in succ if r.get("episode_length", 0) <= min_plausible_steps)
+    return short / len(succ)
+
+
 def mean_field(rows: Sequence[dict], field: str) -> float:
     vals = [r[field] for r in rows if field in r]
     return sum(vals) / len(vals) if vals else float("nan")

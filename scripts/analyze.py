@@ -23,7 +23,10 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from cdp.eval import load_summary, group_by, tcr, stcr, safety_gap, mean_field, median_field
+from cdp.eval import (
+    load_summary, group_by, tcr, stcr, safety_gap, mean_field, median_field,
+    suspiciously_short_success_rate,
+)
 
 Z_95 = 1.959963984540054  # two-sided 95% CI z-score
 
@@ -101,6 +104,19 @@ def main():
             f"TCR={r['TCR']:.3f}±{r['TCR_ci95']:.3f}  STCR={r['STCR']:.3f}±{r['STCR_ci95']:.3f}  "
             f"SafetyGap={r['SafetyGap']:.3f}  dmg={r['mean_total_damage']:.1f}±{r['damage_ci95']:.1f}"
         )
+
+    # Sanity check added after the pick_egg completion-check bug (entry 25,
+    # private/CONTRIBUTIONS_LOG.md): flag any (condition, task) whose
+    # "successes" are suspiciously short episodes, rather than silently
+    # reporting a possibly-fake TCR/STCR.
+    for (condition, task_name), group_rows in group_by2(rows, "condition", "task_name").items():
+        rate = suspiciously_short_success_rate(group_rows)
+        if rate == rate and rate > 0.5:  # not NaN, and majority are short
+            print(
+                f"  !!! WARNING: {condition}/{task_name}: {rate:.0%} of recorded successes have "
+                f"episode_length <= 5 — check task_completion_check for a missing grasping/"
+                f"deliberateness gate before trusting this TCR/STCR (see entry 25)."
+            )
 
     # ── Primary comparison (RQ1): STCR_vector_lagrangian - STCR_scalar_lagrangian, per task ──
     print("\n=== RQ1: STCR_vector_lagrangian - STCR_scalar_lagrangian ===")
