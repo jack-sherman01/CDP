@@ -1064,3 +1064,23 @@ entirely — both were confirmed false positives, not real completions.
 Full writeup: private/CONTRIBUTIONS_LOG.md entry 25. Campaign relaunched
 (resumable design automatically retrains pick_egg first since its
 checkpoints are now missing, then continues to where it left off).
+
+## 2026-10-01 — 100k-step / 5-seed manipulation campaign complete (60/60, 0 failures)
+
+The full re-run launched after the pick_egg bugfix (entries 25-26) finished
+entirely: 5 seeds x 4 conditions x 3 core tasks (pick_egg, pour_water,
+add_firewood), 100,000 steps each, 0 failed runs. In-distribution damage
+summary (median, mean-of-5-seed-medians):
+
+- pick_egg: task_only=101.5, scalar_lagrangian=28.2, vector_lagrangian=27.2
+  (essentially tied with scalar in-distribution — the real RQ1 test is
+  zero-shot, not in-distribution), fixed_weight=45.0.
+- pour_water: all 4 conditions, all 5 seeds = exactly 0.0 median damage —
+  a floor effect with zero variance; this task's in-distribution
+  comparison carries no information for RQ1.
+- add_firewood: task_only=497.7, scalar_lagrangian=60.4,
+  vector_lagrangian=50.3 (slightly ahead of scalar), fixed_weight=197.1.
+
+Launched the full 5-seed x 4-condition zero-shot evaluation
+(pick_egg -> food_in_microwave, 20 combos, ~7-8hr) for the real RQ1 test
+with full statistical power. Results to follow.
