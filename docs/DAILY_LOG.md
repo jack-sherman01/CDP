@@ -1084,3 +1084,13 @@ summary (median, mean-of-5-seed-medians):
 Launched the full 5-seed x 4-condition zero-shot evaluation
 (pick_egg -> food_in_microwave, 20 combos, ~7-8hr) for the real RQ1 test
 with full statistical power. Results to follow.
+
+## 2026-10-01 (cont.) — RQ1 headline result: 5/5 seed sweep
+
+Full 5-seed zero-shot evaluation (pick_egg -> food_in_microwave) complete.
+vector_lagrangian beats scalar_lagrangian on zero-shot damage in ALL 5
+seeds (mean 43.0 vs 287.2, ~6.7x lower) -- the strongest, most complete
+evidence for RQ1 in the project, now at full designed statistical power.
+RQ3 (vs. fixed_weight) remains unreliable (3/5 seeds). Full numbers in
+private/CONTRIBUTIONS_LOG.md entry 27 -- likely the paper's headline
+table.
